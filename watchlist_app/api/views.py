@@ -1,9 +1,31 @@
-from watchlist_app.models import WatchList, StreamPlatform
-from watchlist_app.api.serializers import WatchListSerializer, StreamPlatformSerializer
+from django.db.models.fields import mixins
+from watchlist_app.models import WatchList, StreamPlatform, Reviews
+from watchlist_app.api.serializers import WatchListSerializer, StreamPlatformSerializer, ReviewsSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework import generics, mixins
+
+class ReviewsList(mixins.ListModelMixin, 
+                  mixins.CreateModelMixin,
+                  generics.GenericAPIView):
+    queryset = Reviews.objects.all()
+    serializer_class = ReviewsSerializer
+    
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+class ReviewsDetail(mixins.RetrieveModelMixin, generics.GenericAPIView):
+    
+    queryset = Reviews.objects.all()
+    serializer_class = ReviewsSerializer
+    
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
 
 class WatchListAV(APIView):
 
