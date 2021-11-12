@@ -3,10 +3,13 @@ from rest_framework.serializers import Serializer
 from watchlist_app.models import WatchList, StreamPlatform, Reviews
 from watchlist_app.api.serializers import WatchListSerializer, StreamPlatformSerializer, ReviewsSerializer
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework import generics, mixins
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from watchlist_app.api.permissions import AdminOrReadOnly, ReviewUserOrReadOnly
 
 class ReviewsCreate(generics.CreateAPIView):
     serializer_class = ReviewsSerializer
@@ -14,12 +17,18 @@ class ReviewsCreate(generics.CreateAPIView):
     def perform_create(self, serializer):
         pk = self.kwargs['pk']
         watchlist = WatchList.objects.get(pk=pk)
-        serializer.save(watchlist=watchlist)
+        review_user = self.request.user
+        review_queryset = Reviews.objects.filter(watchlist=watchlist,review_user=review_user)
+        if review_queryset.exists():
+            raise ValidationError("This Movie is already reviewed")
+        serializer.save(watchlist=watchlist, review_user=review_user)
         
-        
+    def get_queryset(self):
+        return Reviews.objects.all()
         
 class ReviewsList(generics.ListAPIView):
     serializer_class = ReviewsSerializer
+    permission_classes = [ IsAuthenticatedOrReadOnly ]
     
     def get_queryset(self):
         pk = self.kwargs['pk']
@@ -28,6 +37,7 @@ class ReviewsList(generics.ListAPIView):
 class ReviewsDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Reviews.objects.all()
     serializer_class = ReviewsSerializer
+    permission_classes = [ ReviewUserOrReadOnly ]
 
 # class ReviewsList(mixins.ListModelMixin, 
 #                   mixins.CreateModelMixin,
